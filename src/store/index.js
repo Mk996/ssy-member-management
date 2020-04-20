@@ -5,11 +5,16 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
+    showLoading: false
+  },
+  getters: {
+    getShowLoading (state) {
+      return state.showLoading
+    }
   },
   mutations: {
-  },
-  actions: {
-  },
-  modules: {
+    setShowLoading (state, value) {
+      state.showLoading = value
+    }
   }
 })
