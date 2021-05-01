@@ -34,7 +34,7 @@ export default {
   },
   data () {
     return {
-      isLoggedIn: false
+      isLoggedIn: true
     }
   },
   computed: {
@@ -51,11 +51,9 @@ export default {
     fa.onAuthStateChanged(firebaseUser => {
       if (firebaseUser) {
         this.isLoggedIn = true
-        console.log(firebaseUser)
-        this.$router.push('/home')
       } else {
+        this.isLoggedIn = false
         if (this.$route.path !== '/') {
-          this.isLoggedIn = false
           this.$router.push('/')
         }
       }

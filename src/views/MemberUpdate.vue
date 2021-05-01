@@ -190,12 +190,13 @@
 
 <script>
 import { fs } from '../firebase/firebaseinit'
+import MemberDetail from '../models/MemberDetail'
 
 export default {
   name: 'MemberUpdate',
   data () {
     return {
-      memberDetail: {}
+      memberDetail: new MemberDetail()
     }
   },
   methods: {
@@ -212,7 +213,6 @@ export default {
       .get()
       .then(doc => {
         this.memberDetail = doc.data()
-        console.log(doc.data())
       })
   }
 }

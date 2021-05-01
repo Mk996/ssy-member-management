@@ -74,6 +74,7 @@
 
 <script>
 import { fs } from '../firebase/firebaseinit'
+import { generateDate } from '../utils/helper'
 
 export default {
   name: 'MemberList',
@@ -128,15 +129,14 @@ export default {
           balance:
             Number(this.selectedMember.balance) + Number(this.paymentAmount)
         }).then(() => {
-          const today = new Date()
-          const date = today.getDate() + '-' + (today.getMonth() + 1) + '-' + today.getFullYear()
+          const date = generateDate()
           fs.collection('transaction')
             .add({
               ssyId: this.selectedMember.ssyId,
               name: this.selectedMember.name,
               amount: this.paymentAmount,
               date: date,
-              created: today.getTime()
+              created: new Date()
             }).then(() => {
               this.closeOverlay()
             })
@@ -149,22 +149,20 @@ export default {
           isDead: true
         })
         .then(() => {
+          this.updateBalances()
+        })
+    },
+    updateBalances () {
+      fs.collection('member')
+        .where('isDead', '==', false)
+        .get()
+        .then(querySnapshot => {
           const batch = fs.batch()
-          fs.collection('member')
-            .get()
-            .then(docs => {
-              docs.forEach(doc => {
-                const ref = fs.collection('member').doc(doc.data().ssyId)
-                if (!doc.data().isDead) {
-                  batch.update(ref, {
-                    balance: Number(doc.data().balance) - 100
-                  })
-                }
-              })
-              return batch.commit().then(() => {
-                this.closeOverlay()
-              })
-            })
+          querySnapshot.forEach(doc => {
+            console.log(doc.data())
+            batch.update(doc.ref, { balance: Number(doc.data().balance) - 100 })
+          })
+          batch.commit().then(() => this.closeOverlay())
         })
     },
     goToUpdateMember () {
