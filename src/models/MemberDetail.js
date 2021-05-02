@@ -14,5 +14,7 @@ export default class MemberDetail {
     this.nomineeOne = new NomineeDetail()
     this.nomineeTwo = new NomineeDetail()
     this.ssyId = ''
+    this.isActive = true
+    this.representative = ''
   }
 }

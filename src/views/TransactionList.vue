@@ -1,97 +1,158 @@
 <template>
   <main class="transaction-list">
     <div class="grid-block">
-      <input type="text" class="text-field text-field-root" placeholder="Search here..." v-model="searchInput" />
+      <input
+        type="text"
+        class="text-field text-field-root"
+        placeholder="Search here..."
+        v-model="searchInput"
+      />
     </div>
     <div class="card-box list-wrapper">
-      <table class="table gap-2">
-        <tr>
-          <th class="base-line h-size-4 text-left pad-1-h">SSYId</th>
-          <th class="base-line text-left pad-1-h">Name</th>
-          <th class="base-line h-size-3 text-right pad-1-h">Amount</th>
-          <th class="base-line h-size-4 text-right pad-1-h">Date</th>
-        </tr>
-        <tr
-          class="list-item"
-          v-for="transaction in filteredTransactionList"
-          :key="transaction.data().created"
-          @click="selectedTransaction = transaction"
-          tabindex="0"
-        >
-          <td class="base-line h-size-4 text-left pad-1-h pad-2-v">{{ transaction.data().ssyId }}</td>
-          <td class="base-line text-left pad-1-h pad-2-v">{{ transaction.data().name }}</td>
-          <td class="base-line h-size-3 text-right pad-1-h pad-2-v">{{ transaction.data().amount }}</td>
-          <td class="base-line h-size-4 text-right pad-1-h pad-2-v">{{ transaction.data().date }}</td>
-        </tr>
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="base-line-title h-size-4 text-left pad-2">
+              Transaction Id
+            </th>
+            <th class="base-line-title text-left pad-2">Name</th>
+            <th class="base-line-title h-size-3 text-right pad-2">Amount</th>
+            <th class="base-line-title h-size-4 text-right pad-2">Date</th>
+          </tr>
+        </thead>
+        <tbody class="tbody">
+          <tr
+            class="list-item"
+            v-for="(transaction, index) in filteredTransactionList"
+            :key="index"
+            @click="
+              selectedTransaction = transaction;
+              isRecordPaymentPopup = true;
+            "
+            tabindex="0"
+          >
+            <td class="base-line h-size-4 text-left pad-2-h pad-2-v">
+              {{ transaction.data().created }}
+            </td>
+            <td class="base-line text-left pad-2-h pad-2-v">
+              {{ showIds(transaction.data().ssyIds) }}
+            </td>
+            <td class="base-line h-size-3 text-right pad-2-h pad-2-v">
+              {{ transaction.data().amount }}
+            </td>
+            <td class="base-line h-size-4 text-right pad-2-h pad-2-v">
+              {{ transaction.data().date }}
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
-    <div class="gap-2">
-      <button class="button button-blue"
-      @click="revertTransaction"
-      v-if="disableButton">Revert Transaction</button>
-    </div>
+    <aside class="overlay" v-if="isRecordPaymentPopup">
+      <div v-if="isRecordPaymentPopup" class="card-box overlay-box">
+        <div class="grid-block-sb">
+          <h3 class="title gap-3-bottom">Transaction Details</h3>
+          <i
+            class="fas fa-times-circle pad-1-v-t icon-image"
+            @click="closeOverlay"
+          ></i>
+        </div>
+        <p class="title pad-1-v-t">
+          Transaction Id: {{ selectedTransaction.data().created }}
+        </p>
+        <p class="title">
+          Transaction Amount: {{ selectedTransaction.data().amount }}
+        </p>
+        <div
+          v-for="member in selectedTransaction.data().ssyIds"
+          :key="member.ssyId"
+          class="gap-2 title"
+        >
+          <span> {{ member.ssyId }} : {{ member.amount }}</span>
+        </div>
+        <p class="title">Remarks:</p>
+        <p class="title">{{ selectedTransaction.data().remarks }}</p>
+        <div class="grid-block-sb gap-1">
+          <button class="button button-acent" @click="revertTransaction">
+            Revert Transaction
+          </button>
+        </div>
+      </div>
+    </aside>
   </main>
 </template>
 
 <script>
 import { fs } from '../firebase/firebaseinit'
+import { checkForAvailableId, showIds } from '../utils/helper'
 export default {
   name: 'Transactions',
   data () {
     return {
       transactionList: [],
       searchInput: '',
-      selectedTransaction: {}
+      selectedTransaction: {},
+      isRecordPaymentPopup: false,
+      showIds
     }
   },
   computed: {
     filteredTransactionList () {
-      return this.transactionList.filter(transaction => {
+      return this.transactionList.filter((transaction) => {
         return (
-          transaction
-            .data()
-            .name.toUpperCase()
-            .indexOf(this.searchInput.toUpperCase()) > -1 ||
-          transaction
-            .data()
-            .ssyId.toUpperCase()
-            .indexOf(this.searchInput.toUpperCase()) > -1
+          transaction.data().ssyIds &&
+          checkForAvailableId(transaction.data().ssyIds, this.searchInput)
         )
       })
-    },
-    disableButton () {
-      return Object.keys(this.selectedTransaction).length
     }
   },
   methods: {
+    closeOverlay () {
+      this.isRecordPaymentPopup = false
+      this.selectedTransaction = {}
+    },
     revertTransaction () {
-      fs.collection('transaction')
+      this.$store.commit('setShowLoading', true)
+      const batch = fs.batch()
+      const transaction = fs
+        .collection('transaction')
         .doc(this.selectedTransaction.id)
-        .delete()
-        .then(() => {
-          const ref = fs.collection('member')
-            .doc(this.selectedTransaction.data().ssyId)
-          fs.runTransaction(t => {
-            return t.get(ref)
-              .then(doc => {
-                const balance = Number(doc.data().balance) - Number(this.selectedTransaction.data().amount)
-                t.update(ref, { balance: balance })
+      this.selectedTransaction.data().ssyIds.forEach((el) => {
+        const member = fs.collection('member').doc(el.ssyId)
+        member
+          .get()
+          .then((doc) => {
+            batch.update(member, {
+              balance: Number(doc.data().balance) - Number(el.amount)
+            })
+            if (
+              doc.data().ssyId ===
+              this.selectedTransaction.data().ssyIds[
+                this.selectedTransaction.data().ssyIds.length - 1
+              ].ssyId
+            ) {
+              batch.delete(transaction)
+              batch.commit().then(() => {
+                this.closeOverlay()
+                this.$store.commit('setShowLoading', false)
               })
+            }
           })
-        })
+      })
     }
   },
   beforeCreate () {
     this.$store.commit('setShowLoading', true)
     fs.collection('transaction')
       .orderBy('created', 'desc')
-      .onSnapshot(snapshot => {
+      .onSnapshot((snapshot) => {
         const retrivedData = []
-        snapshot.docs.forEach(element => {
+        snapshot.docs.forEach((element) => {
           retrivedData.push(element)
         })
         this.transactionList = retrivedData
-        this.$store.commit('setShowLoading', false)
+        if (!(this.isRecordPaymentPopup)) {
+          this.$store.commit('setShowLoading', false)
+        }
       })
   }
 }
@@ -101,12 +162,14 @@ export default {
 @import "@/styles/colors.scss";
 
 .transaction-list {
-  padding: 5px 15vw 40px 15vw;
+  padding: 5px 15vw 0px 15vw;
 }
 
 .list-wrapper {
-  height: 70vh;
+  height: calc(78vh);
   overflow-y: scroll;
+  padding: 0;
+  border-radius: 0;
 }
 
 .list-item {
@@ -114,8 +177,7 @@ export default {
 }
 
 .list-item:hover {
-  background-color: $color-support;
-  color: white;
+  background-color: rgba($color: $color-support, $alpha: 0.3);
   cursor: pointer;
 }
 .list-item:focus {

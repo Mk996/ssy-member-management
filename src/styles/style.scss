@@ -26,6 +26,7 @@
   overflow: hidden;
   padding: 10px 20px;
   border-radius: 10px;
+  cursor: pointer;
   &-primary {
     background: $color-primary;
     &:hover {
@@ -113,6 +114,9 @@
 
 .base-line {
   border-bottom: 1px solid $color-support;
+  &-title {
+    border-bottom: 2px solid $color-support;
+  }
 }
 
 .grid-block {
@@ -240,7 +244,8 @@
 .pad-2 {
   padding: 10px;
   &-h {
-    padding: 0 10px;
+    padding-left: 10px;
+    padding-right: 10px;
     &-l {
       padding-left: 10px;
     }
@@ -249,7 +254,8 @@
     }
   }
   &-v {
-    padding: 10px 0;
+    padding-top: 10px;
+    padding-bottom: 10px;
     &-t {
       padding-top: 10px;
     }

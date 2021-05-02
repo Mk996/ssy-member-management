@@ -177,6 +177,23 @@
         </div>
       </div>
     </div>
+        <div class="card-box">
+      <div class="gap-2">
+        <select class="text-field" v-model="memberDetail.representative">
+          <option value="" disabled selected>Representative</option>
+          <option
+            v-for="representative in representativeList"
+            :key="representative.name"
+            :value="representative.name"
+          >
+            {{ representative.name }}
+          </option>
+        </select>
+      </div>
+      <div class="gap-2">
+        <label> User active </label> <input type="checkbox" v-model="memberDetail.isActive"/>
+      </div>
+    </div>
     <section class="attachment-upload v-size-1 gap-2 grid-block-sb pad-2">
       <span class="title">ID Proof Attachment</span>
       <span class="title">Uploaded file name</span>
@@ -196,7 +213,8 @@ export default {
   name: 'MemberUpdate',
   data () {
     return {
-      memberDetail: new MemberDetail()
+      memberDetail: new MemberDetail(),
+      representativeList: []
     }
   },
   methods: {
@@ -205,14 +223,28 @@ export default {
         .doc(this.memberDetail.ssyId)
         .withConverter(this.memberDetailConverter)
         .set(this.memberDetail)
+        .then(() => {
+          this.$router.push('/home')
+        })
     }
   },
   beforeCreate () {
+    this.$store.commit('setShowLoading', true)
     fs.collection('member')
       .doc(this.$route.query.ssyId)
       .get()
       .then(doc => {
         this.memberDetail = doc.data()
+      })
+    fs.collection('pratinidhi')
+      .get()
+      .then((querySnapshot) => {
+        this.representativeList = []
+        querySnapshot.forEach((doc) => {
+          this.representativeList.push(doc.data())
+        })
+        this.$store.commit('setShowLoading', false)
+        this.representativeList.sort((a, b) => a.name.localeCompare(b.name))
       })
   }
 }

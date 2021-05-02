@@ -30,6 +30,7 @@
               class="text-field block-1"
               placeholder="Date of birth"
               v-model="memberDetail.dateOfBirth"
+              @blur="calculateAge('member', memberDetail.dateOfBirth)"
             />
           </div>
           <div class="grid-block">
@@ -111,6 +112,7 @@
               class="text-field block-1"
               placeholder="Date of birth"
               v-model="memberDetail.nomineeOne.dateOfBirth"
+              @blur="calculateAge('nomineeOne', memberDetail.nomineeOne.dateOfBirth)"
             />
           </div>
           <div class="grid-block">
@@ -159,6 +161,7 @@
               class="text-field block-1"
               placeholder="Date of birth"
               v-model="memberDetail.nomineeTwo.dateOfBirth"
+              @blur="calculateAge('nomineeTwo', memberDetail.nomineeTwo.dateOfBirth)"
             />
           </div>
           <div class="grid-block">
@@ -177,6 +180,26 @@
         </div>
       </div>
     </div>
+    <div class="card-box">
+      <div class="grid-block gap-2">
+        <input type="number" class="text-field" placeholder="Balance" v-model="memberDetail.balance">
+      </div>
+      <div class="gap-2">
+        <select class="text-field" v-model="memberDetail.representative">
+          <option value="" disabled selected>Representative</option>
+          <option
+            v-for="representative in representativeList"
+            :key="representative.name"
+            :value="representative.name"
+          >
+            {{ representative.name }}
+          </option>
+        </select>
+      </div>
+      <div class="gap-2">
+        <label> User active </label> <input type="checkbox" v-model="memberDetail.isActive"/>
+      </div>
+    </div>
     <section class="attachment-upload v-size-1 gap-2 grid-block-sb pad-2">
       <span class="title">ID Proof Attachment</span>
       <span class="title">Uploaded file name</span>
@@ -191,6 +214,7 @@
 <script>
 import MemberDetail from '../models/MemberDetail'
 import { db, fs } from '../firebase/firebaseinit'
+import { calculateAge } from '../utils/helper'
 
 const ssyPrefix = 'SSY-'
 
@@ -229,18 +253,31 @@ export default {
               dateOfBirth: memberDetail.nomineeTwo.dateOfBirth,
               address: memberDetail.nomineeTwo.address
             },
-            ssyId: memberDetail.ssyId
+            ssyId: memberDetail.ssyId,
+            isActive: memberDetail.isActive,
+            representative: memberDetail.representative
           }
         },
         fromFirestore: (snapshot, options) => {
           return snapshot.data(options)
         }
-      }
+      },
+      representativeList: []
     }
   },
   methods: {
+    calculateAge (type, dob) {
+      dob = new Date(dob)
+      if (type === 'member') {
+        this.memberDetail.age = calculateAge(dob)
+      } else if (type === 'nomineeOne') {
+        this.memberDetail.nomineeOne.age = calculateAge(dob)
+      } else {
+        this.memberDetail.nomineeTwo.age = calculateAge(dob)
+      }
+    },
     saveMember () {
-      db.ref('settings/memberId').transaction(currentData => {
+      db.ref('settings/memberId').transaction((currentData) => {
         if (currentData != null) {
           this.memberDetail.ssyId = this.createSsyId(currentData)
           this.updateMember()
@@ -262,7 +299,23 @@ export default {
         .doc(this.memberDetail.ssyId)
         .withConverter(this.memberDetailConverter)
         .set(this.memberDetail)
+        .then(() => {
+          this.$router.replace('/home')
+        })
     }
+  },
+  beforeCreate () {
+    this.$store.commit('setShowLoading', true)
+    fs.collection('pratinidhi')
+      .get()
+      .then((querySnapshot) => {
+        this.representativeList = []
+        querySnapshot.forEach((doc) => {
+          this.representativeList.push(doc.data())
+        })
+        this.$store.commit('setShowLoading', false)
+        this.representativeList.sort((a, b) => a.name.localeCompare(b.name))
+      })
   }
 }
 </script>
