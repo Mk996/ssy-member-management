@@ -3,7 +3,7 @@
     <ul>
       <li class="sidebar_link">
         <router-link to="/home" class="sidebar_link_data">
-          <i class="fas fa-home"></i>
+          <i class="fas fa-clipboard-list"></i>
           <span class="sidebar_link_name">Member List</span>
         </router-link>
       </li>
@@ -15,7 +15,7 @@
       </li>
       <li class="sidebar_link">
         <router-link to="/transactions" class="sidebar_link_data">
-          <i class="fas fa-file-import"></i>
+          <i class="fas fa-exchange-alt"></i>
           <span class="sidebar_link_name">Transactions</span>
         </router-link>
       </li>
@@ -58,5 +58,9 @@ ul {
 
 .name {
   padding-left: 1rem;
+}
+
+.fas {
+  width: 24px;
 }
 </style>
