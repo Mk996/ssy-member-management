@@ -227,11 +227,11 @@ export default {
         toFirestore: (memberDetail) => {
           return {
             name: memberDetail.name,
-            age: memberDetail.age,
+            age: Number(memberDetail.age),
             contact: memberDetail.contact,
             dateOfBirth: memberDetail.dateOfBirth,
             address: memberDetail.address,
-            balance: memberDetail.balance,
+            balance: Number(memberDetail.balance),
             isDead: memberDetail.isDead,
             bankDetail: {
               name: memberDetail.bankDetail.name,
@@ -295,11 +295,13 @@ export default {
       return ssyPrefix + id
     },
     updateMember () {
+      this.$store.commit('setShowLoading', true)
       fs.collection('member')
         .doc(this.memberDetail.ssyId)
         .withConverter(this.memberDetailConverter)
         .set(this.memberDetail)
         .then(() => {
+          this.$store.commit('setShowLoading', false)
           this.$router.replace('/home')
         })
     }

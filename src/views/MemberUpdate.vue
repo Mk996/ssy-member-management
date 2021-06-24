@@ -1,7 +1,10 @@
 <template>
   <main class="member-register">
     <div class="member-details card-box">
-      <div class="grid-block-sb-c"><h2 class="title">Member Details</h2><h3 class="title"> {{ memberDetail.ssyId }} </h3></div>
+      <div class="grid-block-sb-c">
+        <h2 class="title">Member Details</h2>
+        <h3 class="title">{{ memberDetail.ssyId }}</h3>
+      </div>
       <div class="grid-block">
         <div class="block-9">
           <div class="grid-block">
@@ -30,6 +33,7 @@
               class="text-field block-1"
               placeholder="Date of birth"
               v-model="memberDetail.dateOfBirth"
+              @blur="calculateAge('member', memberDetail.dateOfBirth)"
             />
           </div>
           <div class="grid-block">
@@ -111,6 +115,7 @@
               class="text-field block-1"
               placeholder="Date of birth"
               v-model="memberDetail.nomineeOne.dateOfBirth"
+              @blur="calculateAge('nomineeOne', memberDetail.nomineeOne.dateOfBirth)"
             />
           </div>
           <div class="grid-block">
@@ -159,6 +164,7 @@
               class="text-field block-1"
               placeholder="Date of birth"
               v-model="memberDetail.nomineeTwo.dateOfBirth"
+              @blur="calculateAge('nomineeTwo', memberDetail.nomineeTwo.dateOfBirth)"
             />
           </div>
           <div class="grid-block">
@@ -177,7 +183,15 @@
         </div>
       </div>
     </div>
-        <div class="card-box">
+    <div class="card-box">
+      <div class="grid-block gap-2">
+        <input
+          type="number"
+          class="text-field"
+          placeholder="Balance"
+          v-model="memberDetail.balance"
+        />
+      </div>
       <div class="gap-2">
         <select class="text-field" v-model="memberDetail.representative">
           <option value="" disabled selected>Representative</option>
@@ -191,7 +205,8 @@
         </select>
       </div>
       <div class="gap-2">
-        <label> User active </label> <input type="checkbox" v-model="memberDetail.isActive"/>
+        <label> User active </label>
+        <input type="checkbox" v-model="memberDetail.isActive" />
       </div>
     </div>
     <section class="attachment-upload v-size-1 gap-2 grid-block-sb pad-2">
@@ -208,6 +223,7 @@
 <script>
 import { fs } from '../firebase/firebaseinit'
 import MemberDetail from '../models/MemberDetail'
+import { calculateAge } from '../utils/helper'
 
 export default {
   name: 'MemberUpdate',
@@ -218,7 +234,19 @@ export default {
     }
   },
   methods: {
+    calculateAge (type, dob) {
+      dob = new Date(dob)
+      if (type === 'member') {
+        this.memberDetail.age = calculateAge(dob)
+      } else if (type === 'nomineeOne') {
+        this.memberDetail.nomineeOne.age = calculateAge(dob)
+      } else {
+        this.memberDetail.nomineeTwo.age = calculateAge(dob)
+      }
+    },
     updateMember () {
+      this.memberDetail.balance = Number(this.memberDetail.balance)
+      this.memberDetail.age = Number(this.memberDetail.age)
       fs.collection('member')
         .doc(this.memberDetail.ssyId)
         .withConverter(this.memberDetailConverter)
@@ -233,7 +261,7 @@ export default {
     fs.collection('member')
       .doc(this.$route.query.ssyId)
       .get()
-      .then(doc => {
+      .then((doc) => {
         this.memberDetail = doc.data()
       })
     fs.collection('pratinidhi')

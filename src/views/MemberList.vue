@@ -49,12 +49,9 @@
           Initiate Benefits
         </button>
       </div>
-      <button
-          class="button button-blue"
-          @click="exportData"
-        >
-          Export Data
-        </button>
+      <button class="button button-blue" @click="exportData">
+        Export Data
+      </button>
     </div>
     <aside class="overlay" v-if="isDeadDeclarePopup || isRecordPaymentPopup">
       <div
@@ -179,9 +176,9 @@ export default {
   methods: {
     exportData () {
       this.$store.commit('setShowLoading', true)
-      const memberArray = this.memberList.map(el => {
+      const memberArray = this.memberList.map((el) => {
         const values = []
-        getMemberKeys().forEach(key => {
+        getMemberKeys().forEach((key) => {
           if (key === 'address') {
             values.push(`"${el[key]}"`)
           } else {
@@ -192,7 +189,9 @@ export default {
       })
       memberArray.sort((a, b) => a[0].localeCompare(b[0]))
       memberArray.unshift(getMemberHeaders())
-      const csvContent = 'data:text/csv;charset=utf-8,' + memberArray.map(e => e.join(',')).join('\n')
+      const csvContent =
+        'data:text/csv;charset=utf-8,' +
+        memberArray.map((e) => e.join(',')).join('\n')
       var encodedUri = encodeURI(csvContent)
       window.open(encodedUri)
       this.$store.commit('setShowLoading', false)
@@ -300,6 +299,15 @@ export default {
         }
       })
     }
+    // createSsyId (memberId) {
+    //   const ssyPrefix = 'SSY-'
+    //   let id = String(memberId)
+    //   const length = id.length
+    //   for (let i = 0; i < 5 - length; i++) {
+    //     id = '0'.concat(id)
+    //   }
+    //   return ssyPrefix + id
+    // }
   },
   beforeCreate () {
     this.$store.commit('setShowLoading', true)
@@ -317,6 +325,38 @@ export default {
           this.$store.commit('setShowLoading', false)
         }
       })
+    // fs.collection('member')
+    //   .where('isDead', '==', false)
+    //   .where('isActive', '==', true)
+    //   .get()
+    //   .then((querySnapshot) => {
+    //     const batch = fs.batch()
+    //     querySnapshot.forEach((doc) => {
+    //       batch.update(doc.ref, {
+    //         balance: Number(doc.data().balance) + 100
+    //       })
+    //     })
+    //     batch.commit().then(() => {
+    //       this.closeOverlay()
+    //       this.$store.commit('setShowLoading', false)
+    //     })
+    //   })
+    // fs.collection('member')
+    //   .where('isDead', '==', false)
+    //   .where('isActive', '==', true)
+    //   .get()
+    //   .then((querySnapshot) => {
+    //     let num = 41
+    //     querySnapshot.forEach((doc) => {
+    //       const batch = fs.batch()
+    //       if (doc.data().ssyId.localeCompare('SSY-00040') > 0) {
+    //         const member = fs.collection('member').doc(this.createSsyId(num))
+    //         batch.update(member, { ssyId: this.createSsyId(num) })
+    //         num++
+    //       }
+    //       batch.commit()
+    //     })
+    //   })
   }
 }
 </script>
