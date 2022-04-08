@@ -68,8 +68,8 @@ export default {
 
 body {
   margin: 0;
-  font-family: "Roboto";
-  color: $color-font;
+  font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif;
+  font-size: 0.9rem;
 }
 
 #nav {

@@ -32,16 +32,16 @@
             tabindex="0"
           >
             <td class="base-line h-size-4 text-left pad-2-h pad-2-v">
-              {{ transaction.data().created }}
+              {{ transaction.created }}
             </td>
             <td class="base-line text-left pad-2-h pad-2-v">
-              {{ showIds(transaction.data().ssyIds) }}
+              {{ showIds(transaction.members) }}
             </td>
             <td class="base-line h-size-3 text-right pad-2-h pad-2-v">
-              {{ transaction.data().amount }}
+              {{ transaction.amount }}
             </td>
             <td class="base-line h-size-4 text-right pad-2-h pad-2-v">
-              {{ transaction.data().date }}
+              {{ transaction.date }}
             </td>
           </tr>
         </tbody>
@@ -57,20 +57,20 @@
           ></i>
         </div>
         <p class="title pad-1-v-t">
-          Transaction Id: {{ selectedTransaction.data().created }}
+          Transaction Id: {{ selectedTransaction.created }}
         </p>
         <p class="title">
-          Transaction Amount: {{ selectedTransaction.data().amount }}
+          Transaction Amount: {{ selectedTransaction.amount }}
         </p>
         <div
-          v-for="member in selectedTransaction.data().ssyIds"
+          v-for="member in selectedTransaction.members"
           :key="member.ssyId"
           class="gap-2 title"
         >
           <span> {{ member.ssyId }} : {{ member.amount }}</span>
         </div>
         <p class="title">Remarks:</p>
-        <p class="title">{{ selectedTransaction.data().remarks }}</p>
+        <p class="title">{{ selectedTransaction.remarks }}</p>
         <div class="grid-block-sb gap-1">
           <button class="button button-acent" @click="revertTransaction">
             Revert Transaction
@@ -97,12 +97,25 @@ export default {
   },
   computed: {
     filteredTransactionList () {
-      return this.transactionList.filter((transaction) => {
-        return (
-          transaction.data().ssyIds &&
-          checkForAvailableId(transaction.data().ssyIds, this.searchInput)
-        )
-      })
+      if (this.searchInput) {
+        return this.transactionList.filter((transaction) => {
+          return (
+            transaction.members &&
+          checkForAvailableId(transaction.members, this.searchInput)
+          )
+        })
+      }
+      return this.transactionList
+    },
+    storedTransactionList () {
+      return this.$store.getters.getTransactionList
+    }
+  },
+  watch: {
+    storedTransactionList (newValue) {
+      this.transactionList = [].concat(newValue)
+      console.log(this.transactionList)
+      this.transactionList.sort((a, b) => b.created - a.created)
     }
   },
   methods: {
@@ -142,18 +155,7 @@ export default {
   },
   beforeCreate () {
     this.$store.commit('setShowLoading', true)
-    fs.collection('transaction')
-      .orderBy('created', 'desc')
-      .onSnapshot((snapshot) => {
-        const retrivedData = []
-        snapshot.docs.forEach((element) => {
-          retrivedData.push(element)
-        })
-        this.transactionList = retrivedData
-        if (!(this.isRecordPaymentPopup)) {
-          this.$store.commit('setShowLoading', false)
-        }
-      })
+    this.$store.dispatch('fetchAllTransactions')
   }
 }
 </script>

@@ -46,6 +46,18 @@ export const calculateAge = (dob) => {
   return Math.abs(ageDt.getUTCFullYear() - 1970)
 }
 
+export const deepCopy = (obj) => {
+  const newObj = {}
+  Object.keys(obj).forEach(key => {
+    if (obj[key] instanceof Object) {
+      newObj[key] = deepCopy(obj[key])
+    } else {
+      newObj[key] = obj[key]
+    }
+  })
+  return newObj
+}
+
 export const getMemberKeys = () => [
   'ssyId',
   'name',

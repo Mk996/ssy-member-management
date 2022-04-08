@@ -1,148 +1,248 @@
 <template>
   <main class="member-list">
     <div class="grid-block">
-      <input
-        type="text"
-        class="text-field text-field-root"
+      <el-input
         placeholder="Search here..."
+        style="width:100%; margin: 5px 0;"
         v-model="searchInput"
-      />
+      >
+      </el-input>
     </div>
-    <div class="list-wrapper card-box">
-      <div class="grid-block-sb pad-2-v base-line-title table-title">
-        <h3 class="title pad-1-h">SSY Id : Name</h3>
-        <h3 class="title pad-1-h">Balance</h3>
-      </div>
-      <div class="list-items">
-        <div
-          class="grid-block-sb base-line pad-2 list-item"
-          v-for="member in filteredMemberList"
-          :key="member.ssyId"
-          tabindex="1"
-          @click="memberSelected(member)"
+    <el-table
+      v-if="filteredMemberList.length"
+      :data="filteredMemberList"
+      style="width: 100%"
+      height="75vh"
+      show-summary
+      :summary-method="getSummaries"
+      >
+      <el-table-column
+        prop="ssyId"
+        label="SSY Id"
+        sortable
+        width="120">
+      </el-table-column>
+      <el-table-column
+        prop="name"
+        label="Name"
+        :sortable="true"
+        :sort-method="(a, b) => a.name.localeCompare(b.name)"
         >
-          <span>{{ member.ssyId }} : {{ member.name }}</span>
-          <span>{{ member.balance }}</span>
-        </div>
-      </div>
-    </div>
+      </el-table-column>
+      <el-table-column
+        prop="balance"
+        label="Balance"
+        sortable
+        width="120"
+        align="right"
+        >
+      </el-table-column>
+      <el-table-column
+      label="Operations"
+      align="right">
+      <template slot-scope="scope">
+        <el-button @click="initiateBenefits(scope.row)" type="text" size="small">Initiate Benefits</el-button>
+        <el-button type="text" size="small">Edit</el-button>
+      </template>
+    </el-table-column>
+    </el-table>
     <div class="grid-block-sb pad-2-v">
       <div>
-        <button
-          class="button button-blue space-1-right"
-          @click="openRecordPaymentPopup"
-        >
-          Record Payment
-        </button>
-        <button
-          class="button button-acent space-1-right"
-          @click="goToUpdateMember"
-          v-if="disableButtons"
-        >
-          Update Member Details
-        </button>
-        <button
-          class="button button-blue"
-          @click="openDeadDeclarationPopup"
-          v-if="disableButtons"
-        >
-          Initiate Benefits
-        </button>
+        <el-button
+          type="primary"
+          plain
+          @click="recordPaymentDrawer = true"
+        >Record Payment</el-button>
       </div>
       <button class="button button-blue" @click="exportData">
         Export Data
       </button>
     </div>
-    <aside class="overlay" v-if="isDeadDeclarePopup || isRecordPaymentPopup">
-      <div
-        v-if="isRecordPaymentPopup"
-        class="card-box overlay-box"
-        style="width: 40vw"
-      >
-        <div class="grid-block-sb">
-          <h3 class="title gap-3-bottom">Record Payment</h3>
-          <i
-            class="fas fa-times-circle pad-1-v-t icon-image"
-            @click="closeOverlay"
-          ></i>
-        </div>
-        <div class="grid-block">
-          <input
-            type="text"
-            class="text-field text-field-root"
-            placeholder="Search here..."
-            v-model="searchInput"
-          />
-        </div>
-        <div class="list-wrapper card-box">
-          <div class="grid-block-sb pad-2-v base-line-title table-title">
-            <h3 class="title pad-1-h">SSY Id</h3>
-            <h3 class="title pad-1-h">Balance</h3>
-          </div>
-          <div class="list-items">
-            <div
-              class="grid-block-sb base-line pad-2 list-item"
-              v-for="member in filteredMemberList"
-              :key="member.ssyId"
-              tabindex="1"
-              @click="paymentMemberSelected(member)"
-            >
-              <span>{{ member.ssyId }}</span>
-              <span>{{ member.balance }}</span>
+    <el-drawer
+      title="Record new payment"
+      :visible.sync="recordPaymentDrawer"
+      size="84%"
+    >
+      <div class="drawer-content">
+        <el-row>
+          <el-col :span="11">
+            <div class="grid-block">
+              <el-input
+                placeholder="Search here..."
+                style="width: 100%; margin: 5px 0;"
+                v-model="searchInput"
+                clearable
+              >
+              </el-input>
             </div>
-          </div>
+            <el-table
+              v-if="filteredMemberList.length"
+              :data="filteredMemberList"
+              style="width: 100%"
+              height="45vh"
+              @row-click="addPaymentMember"
+            >
+              <el-table-column
+                prop="ssyId"
+                label="SSY Id"
+                sortable
+              >
+              </el-table-column>
+              <el-table-column
+                prop="name"
+                label="Name"
+                :sortable="true"
+                :sort-method="(a, b) => a.name.localeCompare(b.name)"
+                >
+              </el-table-column>
+            </el-table>
+            <div class="pad-1-v-t" style="display: flex; width: 100%; justify-content:space-between;">
+              <div style="color: #909399;">
+                <i class="el-icon-info"></i>
+                <span class="pad-1-h"> Click on any row to select a member for payment </span>
+              </div>
+              <span style="color: #67C23A;">
+                Total Amount: {{ recordPaymentTotalAmount }}
+              </span>
+            </div>
+            <div class="pad-2-v" v-show="recordPayment.members.length">
+              <div class="pad-2-v">
+                <el-input
+                  type="textarea"
+                  :rows="4"
+                  placeholder="Please input your remarks"
+                  v-model="recordPayment.remarks">
+                </el-input>
+              </div>
+              <div class="pad-2-v">
+                <el-select v-model="recordPayment.paymentMethod" placeholder="Select payment mode">
+                  <el-option
+                    v-for="item in paymentMethods"
+                    :key="item"
+                    :label="item"
+                    :value="item">
+                  </el-option>
+                </el-select>
+                <el-date-picker
+                  v-model="recordPayment.date"
+                  type="date"
+                  placeholder="Payment date"
+                  format="dd-MM-yyyy"
+                  class="space-2-left">
+                </el-date-picker>
+              </div>
+              <div class="pad-2-v">
+                <el-button
+                  type="primary"
+                  :loading="recordPaymentLoading"
+                  :disabled="disableRecordPaymentButton"
+                  @click="savePaymentRecord"
+                >Record Payment</el-button>
+                <el-button
+                  type="danger"
+                  plain
+                  @click="clearPaymentMembers"
+                >Clear Selection</el-button>
+              </div>
+            </div>
+          </el-col>
+          <el-col :span="12" class="payment-memebrs-list border-left">
+            <el-row class="gap-2-top"
+                v-for="member in recordPayment.members"
+                :key="member.ssyId"
+                style="display: flex; align-items: center; width: 100%"
+              >
+                <el-col :span="15">
+                  <span> {{member.ssyId}} : {{member.name}} </span>
+                </el-col>
+                <el-col :span="5">
+                  <el-input size="mini" v-model="member.amount"></el-input>
+                </el-col>
+                <el-col :span="3" :offset="1">
+                  <el-button
+                    type="danger"
+                    icon="el-icon-delete"
+                    circle
+                    tabindex="-1"
+                    size="mini"
+                    @click="removePaymentMember(member)"
+                  ></el-button>
+                </el-col>
+              </el-row>
+          </el-col>
+        </el-row>
+      </div>
+    </el-drawer>
+    <el-drawer
+      title="Initiate Benefits"
+      :visible.sync="initiateBenefitsDrawer"
+      :before-close="clearInitiateBenefits"
+    >
+      <div class="drawer-content">
+        <el-descriptions title="Details of Beneficiary" border :column="1">
+          <el-descriptions-item label="SSYId"> {{ benefit.member.ssyId }} </el-descriptions-item>
+          <el-descriptions-item label="Name"> {{ benefit.member.name }} </el-descriptions-item>
+        </el-descriptions>
+        <div class="gap-1" style="color: #909399; font-size: 12px;">
+          <i class="el-icon-info"></i>
+          <span class="pad-1-h"> Benefits calculated automatically, update if not correct! </span>
         </div>
-        <div class="grid-block gap-2">
-          <span> Total : </span>
-          <input
-            type="number"
-            class="space-1"
-            v-model="paymentAmount"
-            @input="updatePaymentAmount"
-          />
-        </div>
-        <div v-for="member in paymentMembers" :key="member.ssyId" class="gap-2">
-          <span> {{ member.ssyId }} : </span>
-          <input type="number" v-model="member.amount" />
-        </div>
-        <div class="grid-block gap-2">
-          <textarea
-            placeholder="Remarks"
-            class="text-field"
-            rows="6"
-            v-model="remarks"
-          ></textarea>
-        </div>
-        <div class="grid-block-sb gap-2-bottom">
-          <button class="button button-acent" @click="recordPayment">
-            Record
-          </button>
+        <div class="gap-3">
+          <el-form class="initiate-benefit" label-width="160px" size="medium">
+            <el-form-item label="Total Benefit">
+              <el-input v-model="benefit.totalBenefit" @input="updateBenefitsValues(benefit.totalBenefit)"></el-input>
+            </el-form-item>
+            <el-form-item :label="`Corpus Fund ( ${benefit.corpusFundPercentage}% )`">
+              <el-input v-model="benefit.corpusFund" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="Pending Balance">
+              <el-input v-model="benefit.pendingBalance" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="Net Benefit">
+              <el-input v-model="benefit.netBenefit" disabled></el-input>
+            </el-form-item>
+            <el-form-item label="Benefit Date">
+              <el-date-picker
+                  v-model="benefit.date"
+                  type="date"
+                  placeholder="Benefit Date"
+                  format="dd-MM-yyyy"
+                  style="width: 100%"
+                  >
+                </el-date-picker>
+            </el-form-item>
+            <el-form-item label="Remarks">
+              <el-input
+                  type="textarea"
+                  :rows="4"
+                  placeholder="Please input your remarks"
+                  v-model="benefit.remarks">
+                </el-input>
+            </el-form-item>
+            <div class="gap-2" style="color: #67C23A; font-size: 16px; text-align: center;">
+              <i class="el-icon-info"></i>
+              <span class="pad-1-h"> Amount to be paid : Rs.{{ benefit.netBenefit }} </span>
+            </div>
+            <div class="gap-3" style="text-align: center;">
+              <el-button
+                type="primary"
+                :loading="initiateBenefitsLoading"
+                :disabled="disableInitiateBenfitsButton"
+                @click="saveInitiateBenefitRecord"
+              >Initiate Benefits</el-button>
+              <el-button type="danger" @click="clearInitiateBenefits" plain> Cancel </el-button>
+            </div>
+          </el-form>
         </div>
       </div>
-      <div v-if="isDeadDeclarePopup" class="card-box overlay-box">
-        <div class="grid-block-sb">
-          <h3 class="title gap-3-bottom">Initiate Benefits</h3>
-          <i
-            class="fas fa-times-circle pad-1-v-t icon-image"
-            @click="closeOverlay"
-          ></i>
-        </div>
-        <p class="title pad-1-v-t">{{ selectedMember.ssyId }}</p>
-        <p class="title pad-1-v">{{ selectedMember.name }}</p>
-        <p class="title">Current balance: {{ selectedMember.balance }}</p>
-        <div class="grid-block-sb gap-2">
-          <button class="button button-acent" @click="declareDeath">
-            Initiate
-          </button>
-        </div>
-      </div>
-    </aside>
+    </el-drawer>
   </main>
 </template>
 
 <script>
-import { fs } from '../firebase/firebaseinit'
-import { generateDate, getMemberHeaders, getMemberKeys } from '../utils/helper'
+import { deepCopy, getMemberHeaders, getMemberKeys } from '../utils/helper'
+import { calculateBenefitValues, checkMemberAlreadyPresentInList, totalBenefits, updateAmount } from '@/utils/memberListHelper'
+import { CONTRIBUTION_AMOUNT, CORPUSFUND_PERECENTAGE, PAYMENT_METHODS } from '@/constant/constant'
 
 export default {
   name: 'MemberList',
@@ -150,12 +250,30 @@ export default {
     return {
       memberList: [],
       searchInput: '',
+      recordPaymentDrawer: false,
+      recordPaymentLoading: false,
+      recordPayment: {
+        members: [],
+        paymentMethod: '',
+        remarks: '',
+        date: ''
+      },
+      initiateBenefitsDrawer: false,
+      initiateBenefitsLoading: false,
+      benefit: {
+        member: {},
+        totalBenefit: 0,
+        corpusFund: 0,
+        netBenefit: 0,
+        pendingBalance: 0,
+        contributionAmount: CONTRIBUTION_AMOUNT,
+        corpusFundPercentage: CORPUSFUND_PERECENTAGE,
+        remarks: '',
+        date: ''
+      },
       isDeadDeclarePopup: false,
-      isRecordPaymentPopup: false,
-      selectedMember: {},
       paymentAmount: 0,
-      remarks: '',
-      paymentMembers: []
+      paymentMethods: PAYMENT_METHODS
     }
   },
   computed: {
@@ -169,8 +287,39 @@ export default {
         )
       })
     },
-    disableButtons () {
-      return this.selectedMember.ssyId
+    disableRecordPaymentButton () {
+      let result = false
+      this.recordPayment.members.forEach(el => {
+        if (!el.amount) {
+          result = true
+        }
+      })
+      if (!(this.recordPayment.paymentMethod &&
+        this.recordPayment.remarks && this.recordPayment.date)) {
+        result = true
+      }
+      return result
+    },
+    disableInitiateBenfitsButton () {
+      return !(this.benefit.totalBenefit && this.benefit.remarks && this.benefit.date)
+    },
+    storedMemberList () {
+      return this.$store.getters.getMemberList
+    },
+    recordPaymentTotalAmount () {
+      let total = 0
+      this.recordPayment.members.forEach(member => {
+        if (!isNaN(member.amount)) {
+          total += Number(member.amount)
+        }
+      })
+      return total
+    }
+
+  },
+  watch: {
+    storedMemberList (newValue) {
+      this.memberList = newValue.filter(item => !item.isDead && item.isActive)
     }
   },
   methods: {
@@ -196,107 +345,181 @@ export default {
       window.open(encodedUri)
       this.$store.commit('setShowLoading', false)
     },
-    updatePaymentAmount () {
-      this.paymentMembers.forEach((el) => {
-        el.amount = this.paymentAmount / this.paymentMembers.length
-      })
-    },
-    paymentMemberSelected (member) {
-      let result = true
-      this.paymentMembers.forEach((el) => {
-        if (el.ssyId === member.ssyId) {
-          result = false
+    // openDeadDeclarationPopup () {
+    //   if (Object.keys(this.selectedMember).length > 0) {
+    //     this.isDeadDeclarePopup = true
+    //   }
+    // },
+    // recordPayment () {
+    //   if (this.paymentAmount) {
+    //     this.$store.commit('setShowLoading', true)
+    //     const batch = fs.batch()
+    //     this.paymentMembers.forEach((paymentMember) => {
+    //       const member = fs.collection('member').doc(paymentMember.ssyId)
+    //       batch.update(member, {
+    //         balance:
+    //           Number(paymentMember.balance) + Number(paymentMember.amount)
+    //       })
+    //     })
+    //     const transaction = fs.collection('transaction').doc()
+    //     const date = generateDate()
+    //     batch.set(transaction, {
+    //       ssyIds: this.paymentMembers.map((el) => {
+    //         return {
+    //           ssyId: el.ssyId,
+    //           amount: el.amount
+    //         }
+    //       }),
+    //       amount: this.paymentAmount,
+    //       date,
+    //       created: new Date().getTime(),
+    //       remarks: this.remarks
+    //     })
+    //     batch.commit().then(() => {
+    //       this.closeOverlay()
+    //       this.$store.commit('setShowLoading', false)
+    //     })
+    //   }
+    // },
+    // declareDeath () {
+    //   this.$store.commit('setShowLoading', true)
+    //   fs.collection('member')
+    //     .doc(this.selectedMember.ssyId)
+    //     .update({
+    //       isDead: true,
+    //       balance: 0
+    //     })
+    //     .then(() => {
+    //       this.updateBalances()
+    //     })
+    // },
+    // updateBalances () {
+    //   fs.collection('member')
+    //     .where('isDead', '==', false)
+    //     .where('isActive', '==', true)
+    //     .get()
+    //     .then((querySnapshot) => {
+    //       const batch = fs.batch()
+    //       querySnapshot.forEach((doc) => {
+    //         batch.update(doc.ref, {
+    //           balance: Number(doc.data().balance) - 100
+    //         })
+    //       })
+    //       batch.commit().then(() => {
+    //         this.closeOverlay()
+    //         this.$store.commit('setShowLoading', false)
+    //       })
+    //     })
+    // },
+    // goToUpdateMember () {
+    //   this.$router.push({
+    //     name: 'MemberUpdate',
+    //     query: {
+    //       ssyId: this.selectedMember.ssyId
+    //     }
+    //   })
+    // },
+    getSummaries (param) {
+      const { columns, data } = param
+      const sums = []
+      columns.forEach((column, index) => {
+        if (index === 0) {
+          sums[index] = 'Total Amount:'
+        } else if (index === 2) {
+          const values = data.map(item => Number(item[column.property]))
+          if (values.length) {
+            sums[index] = `Rs. ${values.reduce((prev, curr) => prev + curr)}`
+          } else {
+            sums[index] = ''
+          }
+        } else {
+          sums[index] = ''
         }
       })
-      if (result) {
-        this.paymentMembers.push(member)
-      }
+      return sums
     },
-    memberSelected (member) {
-      this.selectedMember = member
-    },
-    closeOverlay () {
-      this.isDeadDeclarePopup = false
-      this.isRecordPaymentPopup = false
-      this.selectedMember = {}
-      this.paymentMembers = []
-      this.paymentAmount = 0
-    },
-    openRecordPaymentPopup () {
-      this.isRecordPaymentPopup = true
-    },
-    openDeadDeclarationPopup () {
-      if (Object.keys(this.selectedMember).length > 0) {
-        this.isDeadDeclarePopup = true
-      }
-    },
-    recordPayment () {
-      if (this.paymentAmount) {
-        this.$store.commit('setShowLoading', true)
-        const batch = fs.batch()
-        this.paymentMembers.forEach((paymentMember) => {
-          const member = fs.collection('member').doc(paymentMember.ssyId)
-          batch.update(member, {
-            balance:
-              Number(paymentMember.balance) + Number(paymentMember.amount)
-          })
-        })
-        const transaction = fs.collection('transaction').doc()
-        const date = generateDate()
-        batch.set(transaction, {
-          ssyIds: this.paymentMembers.map((el) => {
-            return {
-              ssyId: el.ssyId,
-              amount: el.amount
-            }
-          }),
-          amount: this.paymentAmount,
-          date,
-          created: new Date().getTime(),
-          remarks: this.remarks
-        })
-        batch.commit().then(() => {
-          this.closeOverlay()
-          this.$store.commit('setShowLoading', false)
+    addPaymentMember (member) {
+      if (!checkMemberAlreadyPresentInList(this.recordPayment.members, member.ssyId)) {
+        this.recordPayment.members.push(updateAmount(member, deepCopy(member)))
+      } else {
+        this.$notify({
+          title: `${member.ssyId} already added`,
+          message: `${member.ssyId} : ${member.name} is already present in the selected list`,
+          type: 'warning'
         })
       }
     },
-    declareDeath () {
+    removePaymentMember (member) {
+      this.recordPayment.members = this.recordPayment.members.filter(el => el.ssyId !== member.ssyId)
+    },
+    clearPaymentMembers () {
+      this.searchInput = ''
+      this.recordPayment.members = []
+      this.recordPayment.date = ''
+      this.recordPayment.paymentMethod = ''
+      this.recordPayment.remarks = ''
+    },
+    getMemberList () {
       this.$store.commit('setShowLoading', true)
-      fs.collection('member')
-        .doc(this.selectedMember.ssyId)
-        .update({
-          isDead: true,
-          balance: 0
-        })
-        .then(() => {
-          this.updateBalances()
-        })
+      this.$store.dispatch('fetchAllMembers')
     },
-    updateBalances () {
-      fs.collection('member')
-        .where('isDead', '==', false)
-        .where('isActive', '==', true)
-        .get()
-        .then((querySnapshot) => {
-          const batch = fs.batch()
-          querySnapshot.forEach((doc) => {
-            batch.update(doc.ref, {
-              balance: Number(doc.data().balance) - 100
-            })
-          })
-          batch.commit().then(() => {
-            this.closeOverlay()
-            this.$store.commit('setShowLoading', false)
-          })
-        })
+    savePaymentRecord () {
+      this.recordPaymentLoading = true
+      this.$store.dispatch('recordPayment', {
+        recordPayment: this.recordPayment,
+        callback: this.stopRecordPaymentLoading
+      })
     },
-    goToUpdateMember () {
-      this.$router.push({
-        name: 'MemberUpdate',
-        query: {
-          ssyId: this.selectedMember.ssyId
-        }
+    stopRecordPaymentLoading () {
+      this.recordPaymentLoading = false
+      this.recordPaymentDrawer = false
+      this.clearPaymentMembers()
+      this.$notify({
+        title: 'Success',
+        message: 'Payment recorded successfully!',
+        type: 'success'
+      })
+    },
+    initiateBenefits (member) {
+      this.benefit.member = member
+      this.updateBenefitsValues(totalBenefits(this.storedMemberList, this.benefit))
+      this.initiateBenefitsDrawer = true
+    },
+    updateBenefitsValues (totalBenefit) {
+      const values = calculateBenefitValues(totalBenefit, this.benefit)
+      this.benefit.totalBenefit = values.totalBenefit
+      this.benefit.corpusFund = values.corpusFund
+      this.benefit.pendingBalance = values.pendingBalance
+      this.benefit.netBenefit = values.netBenefit
+    },
+    clearInitiateBenefits () {
+      this.initiateBenefitsDrawer = false
+      this.benefit = {
+        member: {},
+        totalBenefit: 0,
+        corpusFund: 0,
+        netBenefit: 0,
+        pendingBalance: 0,
+        contributionAmount: CONTRIBUTION_AMOUNT,
+        corpusFundPercentage: CORPUSFUND_PERECENTAGE,
+        remarks: '',
+        date: ''
+      }
+    },
+    saveInitiateBenefitRecord () {
+      this.initiateBenefitsLoading = true
+      this.$store.dispatch('initiateBenefit', {
+        benefit: this.benefit,
+        callback: this.stopInitiateBenefitLoading
+      })
+    },
+    stopInitiateBenefitLoading () {
+      this.initiateBenefitsLoading = false
+      this.clearInitiateBenefits()
+      this.$notify({
+        title: 'Success',
+        message: 'Benefits initiated successfully!',
+        type: 'success'
       })
     }
     // createSsyId (memberId) {
@@ -309,54 +532,8 @@ export default {
     //   return ssyPrefix + id
     // }
   },
-  beforeCreate () {
-    this.$store.commit('setShowLoading', true)
-    fs.collection('member')
-      .orderBy('balance')
-      .onSnapshot((snapshot) => {
-        const retrivedData = []
-        snapshot.docs.forEach((element) => {
-          if (!element.data().isDead && element.data().isActive) {
-            retrivedData.push(element.data())
-          }
-        })
-        this.memberList = retrivedData
-        if (!(this.isDeadDeclarePopup || this.isRecordPaymentPopup)) {
-          this.$store.commit('setShowLoading', false)
-        }
-      })
-    // fs.collection('member')
-    //   .where('isDead', '==', false)
-    //   .where('isActive', '==', true)
-    //   .get()
-    //   .then((querySnapshot) => {
-    //     const batch = fs.batch()
-    //     querySnapshot.forEach((doc) => {
-    //       batch.update(doc.ref, {
-    //         balance: Number(doc.data().balance) + 100
-    //       })
-    //     })
-    //     batch.commit().then(() => {
-    //       this.closeOverlay()
-    //       this.$store.commit('setShowLoading', false)
-    //     })
-    //   })
-    // fs.collection('member')
-    //   .where('isDead', '==', false)
-    //   .where('isActive', '==', true)
-    //   .get()
-    //   .then((querySnapshot) => {
-    //     let num = 41
-    //     querySnapshot.forEach((doc) => {
-    //       const batch = fs.batch()
-    //       if (doc.data().ssyId.localeCompare('SSY-00040') > 0) {
-    //         const member = fs.collection('member').doc(this.createSsyId(num))
-    //         batch.update(member, { ssyId: this.createSsyId(num) })
-    //         num++
-    //       }
-    //       batch.commit()
-    //     })
-    //   })
+  created () {
+    this.getMemberList()
   }
 }
 </script>
@@ -368,35 +545,22 @@ export default {
   padding: 5px 15vw 40px 15vw;
 }
 
-.list-wrapper {
-  position: relative;
-  height: 78vh;
-  overflow-y: scroll;
-  padding: 0;
-  border-radius: 4px;
+.drawer-content {
+  margin: 0 20px;
 }
 
-.overlay .list-wrapper {
-  height: 172px;
+.border-left {
+  border-left: 2px dashed rgba(0, 0, 0, 0.4);
+  padding-left: 20px;
+  margin-left: 20px;
 }
 
-.list-items {
-  margin-top: 52px;
+.payment-memebrs-list {
+  height: 90vh;
+  overflow-y: auto;
 }
 
-.list-item:hover {
-  background-color: rgba($color: $color-support, $alpha: 0.3);
-  cursor: pointer;
-}
-.list-item:focus {
-  background-color: $color-support;
-  color: white;
-  cursor: pointer;
-  outline: none;
-}
-
-.table-title {
-  position: absolute;
-  width: 100%;
+/deep/ .initiate-benefit .el-input .el-input__inner {
+  text-align: right;
 }
 </style>

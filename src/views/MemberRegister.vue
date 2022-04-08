@@ -214,6 +214,7 @@
 <script>
 import MemberDetail from '../models/MemberDetail'
 import { db, fs } from '../firebase/firebaseinit'
+import { updateNames } from '@/firebase/firebaseAdmin'
 import { calculateAge } from '../utils/helper'
 
 const ssyPrefix = 'SSY-'
@@ -318,6 +319,7 @@ export default {
         this.$store.commit('setShowLoading', false)
         this.representativeList.sort((a, b) => a.name.localeCompare(b.name))
       })
+    updateNames()
   }
 }
 </script>
