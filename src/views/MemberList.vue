@@ -5,6 +5,7 @@
         placeholder="Search here..."
         style="width:100%; margin: 5px 0;"
         v-model="searchInput"
+        clearable
       >
       </el-input>
     </div>
@@ -38,13 +39,13 @@
         >
       </el-table-column>
       <el-table-column
-      label="Operations"
-      align="right">
-      <template slot-scope="scope">
-        <el-button @click="initiateBenefits(scope.row)" type="text" size="small">Initiate Benefits</el-button>
-        <el-button type="text" size="small">Edit</el-button>
-      </template>
-    </el-table-column>
+        label="Operations"
+        align="right">
+        <template slot-scope="scope">
+          <el-button @click="initiateBenefits(scope.row)" type="text" size="small">Initiate Benefits</el-button>
+          <el-button type="text" size="small">Edit</el-button>
+        </template>
+      </el-table-column>
     </el-table>
     <div class="grid-block-sb pad-2-v">
       <div>
@@ -345,80 +346,6 @@ export default {
       window.open(encodedUri)
       this.$store.commit('setShowLoading', false)
     },
-    // openDeadDeclarationPopup () {
-    //   if (Object.keys(this.selectedMember).length > 0) {
-    //     this.isDeadDeclarePopup = true
-    //   }
-    // },
-    // recordPayment () {
-    //   if (this.paymentAmount) {
-    //     this.$store.commit('setShowLoading', true)
-    //     const batch = fs.batch()
-    //     this.paymentMembers.forEach((paymentMember) => {
-    //       const member = fs.collection('member').doc(paymentMember.ssyId)
-    //       batch.update(member, {
-    //         balance:
-    //           Number(paymentMember.balance) + Number(paymentMember.amount)
-    //       })
-    //     })
-    //     const transaction = fs.collection('transaction').doc()
-    //     const date = generateDate()
-    //     batch.set(transaction, {
-    //       ssyIds: this.paymentMembers.map((el) => {
-    //         return {
-    //           ssyId: el.ssyId,
-    //           amount: el.amount
-    //         }
-    //       }),
-    //       amount: this.paymentAmount,
-    //       date,
-    //       created: new Date().getTime(),
-    //       remarks: this.remarks
-    //     })
-    //     batch.commit().then(() => {
-    //       this.closeOverlay()
-    //       this.$store.commit('setShowLoading', false)
-    //     })
-    //   }
-    // },
-    // declareDeath () {
-    //   this.$store.commit('setShowLoading', true)
-    //   fs.collection('member')
-    //     .doc(this.selectedMember.ssyId)
-    //     .update({
-    //       isDead: true,
-    //       balance: 0
-    //     })
-    //     .then(() => {
-    //       this.updateBalances()
-    //     })
-    // },
-    // updateBalances () {
-    //   fs.collection('member')
-    //     .where('isDead', '==', false)
-    //     .where('isActive', '==', true)
-    //     .get()
-    //     .then((querySnapshot) => {
-    //       const batch = fs.batch()
-    //       querySnapshot.forEach((doc) => {
-    //         batch.update(doc.ref, {
-    //           balance: Number(doc.data().balance) - 100
-    //         })
-    //       })
-    //       batch.commit().then(() => {
-    //         this.closeOverlay()
-    //         this.$store.commit('setShowLoading', false)
-    //       })
-    //     })
-    // },
-    // goToUpdateMember () {
-    //   this.$router.push({
-    //     name: 'MemberUpdate',
-    //     query: {
-    //       ssyId: this.selectedMember.ssyId
-    //     }
-    //   })
-    // },
     getSummaries (param) {
       const { columns, data } = param
       const sums = []
@@ -522,15 +449,6 @@ export default {
         type: 'success'
       })
     }
-    // createSsyId (memberId) {
-    //   const ssyPrefix = 'SSY-'
-    //   let id = String(memberId)
-    //   const length = id.length
-    //   for (let i = 0; i < 5 - length; i++) {
-    //     id = '0'.concat(id)
-    //   }
-    //   return ssyPrefix + id
-    // }
   },
   created () {
     this.getMemberList()

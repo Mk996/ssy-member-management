@@ -31,7 +31,7 @@ export default {
     })
   },
 
-  async transactionEntry (transactionData, type) {
+  async transactionEntry (transactionData, type, isReverseTransaction) {
     const ref = fs.collection(COLLECTION.TRANSACTIONS).doc(generateDocumentName())
     return await fs.runTransaction((transaction) => {
       return transaction.get(ref).then(doc => {
@@ -39,7 +39,11 @@ export default {
           transaction.set(ref, { transactions: [convertToTransactionData(transactionData, type)] })
         } else {
           const transactions = doc.data().transactions
-          transactions.push(convertToTransactionData(transactionData, type))
+          if (isReverseTransaction) {
+
+          } else {
+            transactions.push(convertToTransactionData(transactionData, type))
+          }
           transaction.update(ref, { transactions })
         }
       })

@@ -17,6 +17,18 @@ export const generateDate = () => {
   return date
 }
 
+export const getDateFromTime = (time) => {
+  const date = new Date(time)
+  return `${appendZero(date.getDate())}/${appendZero(date.getMonth() + 1)}/${date.getFullYear()}`
+}
+
+const appendZero = (number) => {
+  if (String(number).length === 1) {
+    return `0${number}`
+  }
+  return String(number)
+}
+
 export const checkForAvailableId = (list, input) => {
   let result = false
   list.forEach(el => {
